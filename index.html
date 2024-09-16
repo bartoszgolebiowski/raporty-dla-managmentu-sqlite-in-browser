@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQLite in Browser</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.1/sql-wasm.js"></script>
+    <style>
+      #query {
+        width: 100%;
+        height: 100px;
+      }
+      #results {
+        margin-top: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SQLite in Browser</h1>
+    <textarea id="query" placeholder="Enter your SQL query here"></textarea
+    ><br />
+    <button onclick="executeQuery()">Execute Query</button>
+    <div id="results"></div>
+
+    <script>
+      let db;
+
+      // Load the sql.js library
+      window
+        .initSqlJs({
+          locateFile: (file) =>
+            `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.1/${file}`,
+        })
+        .then((SQL) => {
+          window.SQL = SQL;
+        })
+        .then(loadDatabase);
+
+      function loadDatabase() {
+        const url = "./classicmodels.db";
+        fetch(url)
+          .then((response) => response.arrayBuffer())
+          .then((arrayBuffer) => {
+            const uInt8Array = new Uint8Array(arrayBuffer);
+            db = new SQL.Database(uInt8Array);
+            alert("Database loaded successfully!");
+          })
+          .catch((error) => {
+            alert("Failed to load database: " + error.message);
+          });
+      }
+
+      function executeQuery() {
+        const query = document.getElementById("query").value;
+        let resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "";
+
+        try {
+          const results = db.exec(query);
+          if (results.length > 0) {
+            const table = document.createElement("table");
+            const headerRow = document.createElement("tr");
+            results[0].columns.forEach((col) => {
+              const th = document.createElement("th");
+              th.textContent = col;
+              headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            results[0].values.forEach((row) => {
+              const tr = document.createElement("tr");
+              row.forEach((cell) => {
+                const td = document.createElement("td");
+                td.textContent = cell;
+                tr.appendChild(td);
+              });
+              table.appendChild(tr);
+            });
+
+            resultsDiv.appendChild(table);
+          } else {
+            resultsDiv.textContent = "No results found.";
+          }
+        } catch (e) {
+          resultsDiv.textContent = `Error: ${e.message}`;
+        }
+      }
+    </script>
+  </body>
+</html>
